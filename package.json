@@ -1,0 +1,30 @@
+{
+  "name": "aftermarket-local",
+  "version": "0.1.0",
+  "description": "Lokalny system zarządzania domenami AfterMarket.pl + MCP server dla Claude Code",
+  "private": true,
+  "type": "module",
+  "main": "src/mcp-server.js",
+  "bin": {
+    "am": "src/cli.js"
+  },
+  "scripts": {
+    "mcp": "node src/mcp-server.js",
+    "am": "node src/cli.js",
+    "reminders": "node src/reminders.js",
+    "gsc:auth": "node src/gsc-auth.js",
+    "init-db": "node -e \"import('./src/db.js').then(m=>{m.getDb();console.log('DB ready');})\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "aftermarketpl-api": "^1.0.0",
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.5",
+    "googleapis": "^172.0.0",
+    "open": "^11.0.0",
+    "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

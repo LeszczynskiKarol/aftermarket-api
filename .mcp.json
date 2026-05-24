@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "aftermarket": {
+      "command": "node",
+      "args": ["src/mcp-server.js"],
+      "cwd": "D:\\aftermarket-api"
+    }
+  }
+}
