@@ -54,6 +54,13 @@ npm run am -- dropcatch remote          # co siedzi po stronie API
 # Surowe wywołanie dowolnego endpointu (przydatne do eksploracji)
 npm run am -- call /domain/check --json '{"names":["foo.pl"]}'
 
+# Balance konta AM
+npm run am -- call /account/balance
+
+# Lista WSZYSTKICH wygasających domen z giełdy AM (filtr po kategorii)
+npm run am -- call /buyer/expiring/domain/category/list
+npm run am -- call /buyer/expiring/domain/list --json '{"expiringDomainCategoryId":"40."}'
+
 # Log ostatnich operacji
 npm run am -- log --limit 20
 ```
@@ -76,6 +83,13 @@ Plik `.mcp.json` w katalogu projektu automatycznie rejestruje server
 Operacje kosztowne (`register`, `renew`, `dropcatch_add`) powinny być
 zatwierdzane ręcznie w prompcie Claude Code. Operacje read-only możesz
 auto-approve w `~/.claude/settings.json`.
+
+**Sprawdź balance przed kosztownymi operacjami:**
+```
+npm run am -- call /account/balance
+```
+HTTP 402 z `/domain/add` oznacza brak środków na koncie AM
+(doładuj na https://www.aftermarket.pl/Account/).
 
 ## Moz (DA/PA dla nowych domen)
 
@@ -138,23 +152,39 @@ src/gsc-auth.js     — jednorazowy OAuth flow (npm run gsc:auth)
 data/aftermarket.db — baza SQLite (NIE commituj)
 ```
 
-## Endpointy do potwierdzenia
+## Endpointy AM API (zweryfikowane z docs)
 
 Biblioteka `aftermarketpl-api` to tylko generyczny `send(path, params)`.
-Dokumentacja na https://json.aftermarket.pl/__docs/ używa zaciemnionych
-hashy w nawigacji, więc nie udało się wyciągnąć wszystkich ścieżek
-automatycznie. W `src/api.js` użyto następujących (część to nasze
-najlepsze zgadnięcia — zweryfikuj pierwszym `am_api_call` jeśli zwróci 404):
+W `src/api.js` mamy wrappery na konkretne ścieżki. Pełna lista pod
+https://json.aftermarket.pl/?show=apilist (JS-renderowana, w przeglądarce).
 
-- `/domain/check`     — potwierdzone w README biblioteki
-- `/domain/list`      — do weryfikacji
-- `/domain/info`      — do weryfikacji
-- `/domain/order/add` — do weryfikacji
-- `/domain/renew`     — do weryfikacji
-- `/dropcatch/add`    — do weryfikacji
-- `/dropcatch/list`   — do weryfikacji
-- `/dropcatch/remove` — do weryfikacji
+**Domain management** (`src/api.js` → `domain.*`):
+- `/domain/check` — dostępność
+- `/domain/list`, `/domain/list/count` — moje portfolio
+- `/domain/get` — szczegóły jednej domeny z portfolio
+- `/domain/add` — rejestracja (płatna)
+- `/domain/add/suspended` — rejestracja zawieszona (`orderSuspended`) — wisi na `/order/list`, można aktywować; bezpieczniejsze niż `/domain/add` bo widzisz koszt przed wykonaniem
+- `/domain/renew`, `/domain/renew/suspended`
+- `/domain/reactivate` — reaktywacja wygasającej własnej domeny
+- `/domain/note/get|set`, `/domain/tag/assign|list|remove` — notatki/tagi po stronie AM
+- `/domain/ns/get|set`, `/domain/dns/*`, `/domain/dnssec/*`
+- `/domain/autorenew/get|set|days/get`
+- `/domain/contact/get|set`, `/domain/redirect/get|set`
+- `/domain/hide|unhide`, `/domain/past/list`
 
-Jeśli któraś ścieżka jest błędna — popraw w `src/api.js` w jednym miejscu,
-MCP/CLI same się dostosują.
+**Dropcatch** — UWAGA: AM nazywa to `/buyer/catch/*`, **nie** `/dropcatch/*`!
+(`src/api.js` → `dropcatch.*`):
+- `/buyer/catch/add|list|remove` — kolejka dropcatchu
+- `/buyer/catch/note/get|set` — notatki na pozycji
+- `/buyer/catch/waiting/list` — dodane, ale jeszcze nie wygasające
+- `/buyer/caught/list`, `/buyer/notcaught/list` — historia
+- `/buyer/expiring/domain/list` — wszystkie wygasające z giełdy AM (szukanie kandydatów)
+- `/buyer/expiring/domain/category/list` — kategorie wygasających
+
+**Konto**:
+- `/account/balance` — stan środków (zwraca liczbę PLN)
+
+Po zmianie wrappera w `src/api.js` **trzeba zrestartować MCP server**
+w Claude Code (`/mcp` → reconnect `aftermarket`), żeby załadował nowy kod.
+CLI (`npm run am`) ładuje świeży kod od razu.
 # aftermarket-api
